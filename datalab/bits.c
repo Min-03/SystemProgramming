@@ -197,17 +197,10 @@ int getByte(int x, int n) {
  *   Rating: 4 
  */
 int bang(int x) {
-  int upper = x >> 16;
-  int res = x | upper;
-  upper = res >> 8;
-  res = res | upper;
-  upper = res >> 4;
-  res = res | upper;
-  upper = res >> 2;
-  res = res | upper;
-  upper = res >> 1;
-  res = res | upper;
-  return (res & 1) ^ 1;
+  int minus = ~x + 1;
+  int not_zero = (x | minus) >> 31;
+  int ret = not_zero + 1;
+  return ret;
 }
 /* 
  * tmin - return minimum two's complement integer 
@@ -236,9 +229,10 @@ int negate(int x) {
  *   Rating: 3
  */
 int isPositive(int x) {
-  int bit1 = (x >> 31) + 1;
-  int bit2 = ((x + ~0) >> 31) + 1;
-  return bit1 & bit2;
+  int signReverse = !(x >> 31);
+  int is_zero = !x;
+  int ret = is_zero ^ signReverse;
+  return ret;
 }
 /* 
  * float_neg - Return bit-level equivalent of expression -f for
@@ -252,9 +246,10 @@ int isPositive(int x) {
  *   Rating: 2
  */
 unsigned float_neg(unsigned uf) {
- int exp = (uf >> 23) & 8;
- if (exp == (1 << 9) - 1) return uf;
- else return uf & (1 << 31);
+ unsigned exp = 0x7f800000 & uf;
+ unsigned frac = 0x007fffff & uf;
+ if ((exp == 0x7f800000) && (frac != 0)) return uf;
+ return 0x80000000 ^ uf;
 }
 /* 
  * float_twice - Return bit-level equivalent of expression 2*f for
@@ -268,5 +263,10 @@ unsigned float_neg(unsigned uf) {
  *   Rating: 4
  */
 unsigned float_twice(unsigned uf) {
-  return 2;
+  unsigned exp = 0x7f800000 & uf;
+  unsigned frac = 0x007fffff & uf;
+  unsigned sign = 0x80000000 & uf;
+  if (exp == 0x7f80000) return uf; //inf or nan
+  else if (exp == 0) return sign | (uf << 1); //denormal
+  else return uf + 0x00800000;
 }
