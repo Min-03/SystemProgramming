@@ -167,7 +167,6 @@ int main(int argc, char **argv)
 void eval(char *cmdline) 
 {   
     char *argv[MAXARGS];
-    char buf[MAXLINE];
     int bg, stat;
     sigset_t mask_all, all_prev, mask_chld, chld_prev;
     pid_t pid;
@@ -177,8 +176,7 @@ void eval(char *cmdline)
     sigemptyset(&mask_chld);
     sigaddset(&mask_chld, SIGCHLD);
 
-    strcpy(buf, cmdline);
-    bg = parseline(buf, argv);
+    bg = parseline(cmdline, argv);
     if (argv[0] == NULL) {
         return;
     }
