@@ -297,11 +297,36 @@ int builtin_cmd(char **argv)
 void do_bgfg(char **argv) 
 {
     sigset_t mask_all, all_prev;
+    struct job_t *job;
+    char *tgt = argv[1];
+    if (tgt == NULL) {
+        printf("%s command requires PID or %%jobid argument\n", argv[0]);
+        return;
+    }
+    if (tgt[0] == '%') {
+        //jid is given
+        int jid = getjid(argv);
+        job = getjobjid(jobs, jid);
+        if (job == NULL) {
+            printf("%s: No such job\n", tgt);
+            return;
+        }
+    } else if (isdigit(tgt[0])) {
+        //pid is given
+        pid_t pid = atoi(tgt);
+        job = getjobpid(jobs, pid);
+        if (job == NULL) {
+            printf("(%d): No such process\n", pid);
+            return;
+        }
+    } else {
+        printf("%s: argument must be a PID or %%jobid\n", argv[0]);
+        return;
+    }
+    
     int bg2fg = (!strcmp(argv[0], "fg"));
-    int jid = getjid(argv);
-    struct job_t *job = getjobjid(jobs, jid);
-    sigfillset(&mask_all);
     pid_t pid = job -> pid;
+    sigfillset(&mask_all);
     sigprocmask(SIG_SETMASK, &mask_all, &all_prev);
     kill(-pid, SIGCONT);
     if (bg2fg) {
@@ -310,6 +335,7 @@ void do_bgfg(char **argv)
         waitfg(pid);
     } else {
         char *cmd = job -> cmdline;
+        int jid = job -> jid;
         printf("[%d] (%d) %s", jid, pid, cmd);
         job -> state = BG;
         sigprocmask(SIG_SETMASK, &all_prev, NULL);
